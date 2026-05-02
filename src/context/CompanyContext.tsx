@@ -27,15 +27,15 @@ function formatRevenue(val: number): string {
 
 async function secFetch<T>(endpoint: string): Promise<T> {
   const res = await fetch(`/api/sec?endpoint=${encodeURIComponent(endpoint)}`);
-  const data = await res.json();
 
   if (!res.ok) {
-    throw new Error(data.error ?? `Request failed with status ${res.status}`);
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error ?? `Request failed with status ${res.status}`);
   }
 
+  const data = await res.json();
   return data as T;
 }
-
 function extractAnnualRevenue(
   dataPoints: FinancialDataPoint[]
 ): ProcessedRevenuePoint[] {
@@ -82,42 +82,46 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const fetchCompany = useCallback(async (rawInput: string) => {
-  const input = rawInput.trim();
-  if (!input) return;
+    const input = rawInput.trim();
+    if (!input) return;
 
-  setStatus("loading");
-  setError(null);
-  setCompany(null);
+    setStatus("loading");
+    setError(null);
+    setCompany(null);
 
-  try {
-    const tickerMap = await secFetch<SecTickerMap>("/files/company_tickers.json");
-    const entries = Object.values(tickerMap);
+    try {
+      const tickerMap = await secFetch<SecTickerMap>("/files/company_tickers.json");
+      const entries = Object.values(tickerMap);
 
-    let entry;
+      let entry;
 
-    if (/^\d+$/.test(input)) {
-      const cikNum = parseInt(input, 10);
-      entry = entries.find((e) => e.cik_str === cikNum);
-      if (!entry) throw new Error(`No company found with CIK "${input}".`);
-    } else {
-      entry =
-        entries.find((e) => e.ticker.toUpperCase() === input.toUpperCase()) ??
-        entries.find((e) =>
-          e.title.toLowerCase().includes(input.toLowerCase())
-        );
+      if (/^\d+$/.test(input)) {
+        const cikNum = parseInt(input, 10);
+        entry = entries.find((e) => e.cik_str === cikNum);
+        if (!entry) throw new Error(`No company found with CIK "${input}".`);
+      } else {
+        entry =
+          entries.find((e) => e.ticker.toUpperCase() === input.toUpperCase()) ??
+          entries.find((e) =>
+            e.title.toLowerCase().includes(input.toLowerCase())
+          );
 
-      if (!entry) {
-        throw new Error(
-          `No company found matching "${input}". Try a ticker (AAPL), CIK (320193), or a more specific name.`
-        );
+        if (!entry) {
+          throw new Error(
+            `No company found matching "${input}". Try a ticker (AAPL), CIK (320193), or a more specific name.`
+          );
+        }
       }
-    }
-    const ticker = entry.ticker.toUpperCase();
-    const paddedCik = String(entry.cik_str).padStart(10, "0");
-    const facts = await secFetch<CompanyFacts>(
-      `/api/xbrl/companyfacts/CIK${paddedCik}.json`
-    );
+      const ticker = entry.ticker.toUpperCase();
+      const paddedCik = String(entry.cik_str).padStart(10, "0");
+      const facts = await secFetch<CompanyFacts>(
+        `/api/xbrl/companyfacts/CIK${paddedCik}.json`
+      );
 
+
+      if (!facts?.facts) {
+        throw new Error("EDGAR returned an unexpected response. Try again in a moment.");
+      }
 
       const gaap = facts.facts["us-gaap"] ?? {};
 
