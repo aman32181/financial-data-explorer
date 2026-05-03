@@ -58,7 +58,7 @@ src/
 
 ## Limitations worth knowing
 
-- **Annual data only** — filters for 10-K filings, so the latest point can be ~1-10 year old
+- **Annual data only** — filters for 10-K filings, so the latest point can be ~1 year old
 - **Revenue concept mismatch** — some filers use non-standard GAAP concept names and may return no data
 - **Rate limits** — EDGAR will 429 you on bursts; waiting ~30s usually fixes it
 
