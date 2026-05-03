@@ -114,28 +114,18 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
       }
       const ticker = entry.ticker.toUpperCase();
       const paddedCik = String(entry.cik_str).padStart(10, "0");
-      const facts = await secFetch<CompanyFacts>(
-        `/api/xbrl/companyfacts/CIK${paddedCik}.json`
-      );
+      const facts = await secFetch<{
+        entityName: string;
+        revenueData: ProcessedRevenuePoint[];
+        revenueConceptUsed: string | null;
+      }>(`/api/xbrl/companyfacts/CIK${paddedCik}.json`);
 
-
-      if (!facts?.facts) {
+      if (!facts?.entityName) {
         throw new Error("EDGAR returned an unexpected response. Try again in a moment.");
       }
 
-      const gaap = facts.facts["us-gaap"] ?? {};
-
-      let revenueData: ProcessedRevenuePoint[] = [];
-      let revenueConceptUsed: string | null = null;
-
-      for (const concept of REVENUE_CONCEPTS) {
-        if (gaap[concept]?.units?.USD?.length) {
-          revenueData = extractAnnualRevenue(gaap[concept].units.USD);
-          revenueConceptUsed = concept;
-          break;
-        }
-      }
-
+      const revenueData = facts.revenueData;
+      const revenueConceptUsed = facts.revenueConceptUsed;
       const latestRevenue = revenueData.length
         ? revenueData[revenueData.length - 1].revenue
         : null;
