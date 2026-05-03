@@ -3,7 +3,7 @@
 Pulls annual revenue data for any US-listed company straight from SEC EDGAR.
 Search by ticker,name get a chart. No data vendor, no API key required.
 
-Live-demo: https://us-financial-data-explorer.netlify.app/
+Live-demo: https://financial-data-explorer-alpha.vercel.app/
 ## Setup
 
 Requires Node.js 18+
